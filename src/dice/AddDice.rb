@@ -43,7 +43,8 @@ class AddDice
 
     if command.cmp_op
       dice_total = dice_list.inject(&:+)
-      output += @diceBot.check_result(total, dice_total, dice_list, randomizer.sides, command.cmp_op, command.rhs)
+      target = command.rhs.eval(randomizer)
+      output += @diceBot.check_result(total, dice_total, dice_list, randomizer.sides, command.cmp_op, target)
     end
 
     output += @diceBot.getDiceRolledAdditionalText(num_one, num_max, randomizer.sides)

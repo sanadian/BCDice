@@ -104,6 +104,11 @@ class AddDiceParserTest < Test::Unit::TestCase
     )
   end
 
+  # 比較演算子あり、目標値が未指定
+  def test_parse_undefined_target_value
+    test_parse('2D6>=?', '(Command (>= (DiceRoll 2 6) ?))')
+  end
+
   private
 
   # 構文解析をテストする

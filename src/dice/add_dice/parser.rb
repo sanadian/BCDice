@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# frozen_string_literal: true
 
 require "utils/ArithmeticEvaluator"
 require "utils/normalize"
@@ -17,18 +18,22 @@ class AddDice
       lhs, cmp_op, rhs = @expr.partition(/[<>=]+/)
 
       cmp_op = Normalize.comparison_operator(cmp_op)
-      if !rhs.empty? && rhs != "?"
-        rhs = ArithmeticEvaluator.new.eval(rhs)
-      end
+
+      rhs_node =
+        if !rhs.empty? && rhs != '?'
+          Node::Number.new(ArithmeticEvaluator.new.eval(rhs))
+        else
+          Node::UndefinedTargetValue.new
+        end
 
       @tokens = tokenize(lhs)
-      lhs = expr()
+      lhs_node = expr()
 
       if @idx != @tokens.size
         @error = true
       end
 
-      return AddDice::Node::Command.new(lhs, cmp_op, rhs)
+      return AddDice::Node::Command.new(lhs_node, cmp_op, rhs_node)
     end
 
     def error?

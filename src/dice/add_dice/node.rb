@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# frozen_string_literal: true
 
 class AddDice
   # 加算ロールの構文解析木のノードを格納するモジュール
@@ -15,7 +16,7 @@ class AddDice
       # @return [Symbol]
       attr_reader :cmp_op
       # 右辺のノード
-      # @return [Object]
+      # @return [Number, UndefinedTargetValue]
       attr_reader :rhs
 
       # ノードを初期化する
@@ -31,14 +32,14 @@ class AddDice
       # 文字列に変換する
       # @return [String]
       def to_s
-        @lhs.to_s + cmp_op_text + @rhs.to_s
+        @cmp_op ? "#{@lhs}#{cmp_op_text}#{@rhs}" : @lhs.to_s
       end
 
       # ノードのS式を返す
       # @return [String]
       def s_exp
         if @cmp_op
-          "(Command (#{@cmp_op} #{@lhs.s_exp} #{@rhs}))"
+          "(Command (#{@cmp_op} #{@lhs.s_exp} #{@rhs.s_exp}))"
         else
           "(Command #{@lhs.s_exp})"
         end
@@ -194,13 +195,13 @@ class AddDice
       # +round_type+ には、+:roundUp+（切り上げ）、+:roundOff+（四捨五入）、
       # または +nil+ を指定する。
       #
-      # @param [Object] times ダイスを振る回数のノード
-      # @param [Object] sides ダイスの面数のノード
-      # @param [Object, nil] critical クリティカル値のノード
+      # @param [Number] times ダイスを振る回数のノード
+      # @param [Number] sides ダイスの面数のノード
+      # @param [Number, nil] critical クリティカル値のノード
       def initialize(times, sides, critical)
-        @times = times.literal
-        @sides = sides.literal
-        @critical = critical.nil? ? nil : critical.literal
+        @times = times
+        @sides = sides
+        @critical = critical
 
         # ダイスを振った結果の出力テキスト
         @text = nil
@@ -214,7 +215,11 @@ class AddDice
       # @param [Randomizer] randomizer ランダマイザ
       # @return [Integer] 評価結果（出目の合計値）
       def eval(randomizer)
-        total, @text = randomizer.roll(@times, @sides, @critical)
+        times = @times.eval(randomizer)
+        sides = @sides.eval(randomizer)
+        critical = @critical && @critical.eval(randomizer)
+
+        total, @text = randomizer.roll(times, sides, critical)
 
         total
       end
@@ -239,8 +244,9 @@ class AddDice
       # @return [String]
       def s_exp
         parts = [@times, @sides, @critical].compact
+        s_exps = parts.map(&:s_exp)
 
-        "(DiceRoll #{parts.join(' ')})"
+        "(DiceRoll #{s_exps.join(' ')})"
       end
     end
 
@@ -272,6 +278,24 @@ class AddDice
       # @return [String]
       def to_s
         @literal.to_s
+      end
+
+      alias output to_s
+      alias s_exp to_s
+    end
+
+    # 未指定の目標値を表すノード。
+    class UndefinedTargetValue
+      # 文字列に変換する
+      # @return [String]
+      def to_s
+        '?'
+      end
+
+      # ノードを評価する
+      # @return [String] +"?"+ を返す
+      def eval(_randomizer)
+        '?'
       end
 
       alias output to_s
